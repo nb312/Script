@@ -1,0 +1,96 @@
+option java_package ="com.mududu.mddlauncher.service.move";
+option java_outer_classname = "SlamMsg";
+
+enum MsgType
+{
+	MSG_GREETING         = 0x0000;
+	MSG_TRACKING         = 0x0001;
+	MSG_OBJECT			 = 0x0002;	
+}
+
+//In general, message is compose of HeadMsg and a special body messege.
+//We can denote is as:
+//Packet :=  HeadMsg | Body Message
+//protoc will compile this HeadMsg to a fixed length, 29 bytes.
+//when a communication peer recieved message, he or her can read fixed (29bytes) firstly.
+//then the length of body message if determined.
+//and read body message. Parse it.
+
+message HeadMsg
+{
+	required    fixed32 syn     = 1 [default = 0xFF];
+	required    fixed32 pro     = 2 [default = 100]; //vesion of protocol, 
+	required    fixed32 type    = 3; //it is one of MsgType
+	required    fixed64 seqno   = 4; //message sequence number, is up to message sender to set
+	required    fixed32 len     = 5; //the length of following message body, not include this HeadMsg.
+}
+
+message Greeting {
+	required string hello = 1;
+}
+
+enum WorkMode
+{
+	SLAM_NORMAL 		= 0x00;
+	SLAM_TRACKING_ONLY 	= 0x01;
+}
+
+enum TrackingState
+{
+	SYSTEM_NOT_READY =-1;
+    NO_IMAGES_YET	=0;
+    NOT_INITIALIZED		=1;
+    OK	 =2;
+    LOST =3;
+}
+
+message Pose3D
+{
+	repeated double rvec = 1; //rotate 3*3 matrix
+	repeated double tvec = 2; //position 3*1 (x,y,z)
+}
+
+message Pose2D
+{
+	required double rx = 1; //direct of x
+	required double ry = 2; //direct of y
+	required double tx = 3; //position of x
+	required double ty = 4; //position of y
+}
+
+
+message ObjectInfo 
+{
+	required string object = 1;
+	required Pose3D pose = 2;
+	required Pose2D pose2d = 3;
+}
+
+
+enum MotionCommand{
+	MOVE_STOP = 0;
+	MOVE_FORWARD = 1;
+	MOVE_BACK = 2;
+	MOVE_LEFT = 3;
+	MOVE_RIGHT = 4;
+}
+
+message Motion {
+	required MotionCommand cmd = 1;
+	required int32 value = 2;
+}
+
+message TrackingInfo
+{
+	required int64 frameId = 1;
+	required double timestamp = 2;
+	required TrackingState trackingStatus = 3;
+	required WorkMode mode = 4;
+	required double scale = 5;
+	required Pose3D camera3d = 6;
+	repeated double gravityDirection = 7;
+	required Pose2D camera2d = 8; //camera current pose: position & direction
+	repeated ObjectInfo objects = 9;
+	optional bytes jpg = 10;
+	optional Motion motion = 11;
+}
